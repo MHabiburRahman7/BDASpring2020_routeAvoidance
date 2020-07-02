@@ -6,6 +6,9 @@
 #include <string>
 #include <fstream>
 
+//#define FULL_DATA
+#define QUICK_TEST
+
 using namespace std;
 
 template <typename T>
@@ -15,22 +18,38 @@ void readCSV(string filename, vector<vector<T>>& perTrajectory, vector<T> & mixe
 
     vector<T> onelineV;
 
-    int x;// , last_line_number = 0;
+    int x;
     float lineFloat, line2Float;
 
-    for (int i = 0; i < 300; i++) {
-        for (int j = 0; (x = getc(realfile)) != '\n'; j++) {
-            fscanf(realfile, "%f,%f;", &lineFloat, &line2Float);
+#if defined(FULL_DATA)
+        for (int i = 0; (x = getc(realfile)) != EOF; i++) {
+            for (int j = 0; (x = getc(realfile)) != '\n'; j++) {
+                fscanf(realfile, "%f,%f;", &lineFloat, &line2Float);
 
-            //1st line float always skipped by 1 character -> and all of 1st line start with 39
-            lineFloat += 30.0f;
+                //1st line float always skipped by 1 character -> and all of 1st line start with 39
+                lineFloat += 39.0f;
 
-            onelineV.push_back(T{ lineFloat, line2Float });
-            mixedTrajectory.push_back(T{ lineFloat, line2Float });
+                onelineV.push_back(T{ lineFloat, line2Float });
+                mixedTrajectory.push_back(T{ lineFloat, line2Float });
+            }
+            perTrajectory.push_back(onelineV);
+            onelineV = {};
         }
-        perTrajectory.push_back(onelineV);
-        onelineV = {};
-    }
+#elif defined(QUICK_TEST)
+        for (int i = 0; i < 1000; i++) { //due to time remaining, so we just test this using small number of data
+            for (int j = 0; (x = getc(realfile)) != '\n'; j++) {
+                fscanf(realfile, "%f,%f;", &lineFloat, &line2Float);
+
+                //1st line float always skipped by 1 character -> and all of 1st line start with 39
+                lineFloat += 30.0f;
+
+                onelineV.push_back(T{ lineFloat, line2Float });
+                mixedTrajectory.push_back(T{ lineFloat, line2Float });
+            }
+            perTrajectory.push_back(onelineV);
+            onelineV = {};
+        }
+#endif
 
     fclose(realfile);
 }
