@@ -6,8 +6,8 @@
 #include <string>
 #include <fstream>
 
-//#define FULL_DATA
-#define QUICK_TEST
+#define FULL_DATA
+//#define QUICK_TEST
 
 using namespace std;
 
@@ -36,7 +36,7 @@ void readCSV(string filename, vector<vector<T>>& perTrajectory, vector<T> & mixe
             onelineV = {};
         }
 #elif defined(QUICK_TEST)
-        for (int i = 0; i < 1000; i++) { //due to time remaining, so we just test this using small number of data
+        for (int i = 0; i < 800; i++) { //due to time remaining, so we just test this using small number of data
             for (int j = 0; (x = getc(realfile)) != '\n'; j++) {
                 fscanf(realfile, "%f,%f;", &lineFloat, &line2Float);
 
@@ -79,14 +79,16 @@ void writeTrajectoryStartEndCluster(string filename, vector<vector<uint>> the_cl
     pFile = fopen(filename.c_str(), "w");
 
     //header for information
-    fprintf(pFile, "trajectories; cluster_id;trajectory_id;\n");
+    fprintf(pFile, "trajectory_id;cluster_id;trajectories;\n");
 
     for (int i = 0; i < the_cluster.size(); i++) {
         for (int k = 0; k < the_cluster[i].size(); k++) {
+
+            fprintf(pFile, "%d;%d;", the_cluster[i][k], i);
             for (int j = 0; j < trajectoryData[the_cluster[i][k]].size(); j++) {
                 fprintf(pFile, "%f;%f;", trajectoryData[the_cluster[i][k]][j][0], trajectoryData[the_cluster[i][k]][j][1]);
             }
-            fprintf(pFile, "%d;%d;\n", i, the_cluster[i][k]);
+            fprintf(pFile, "\n");
         }
     }
 
@@ -171,6 +173,28 @@ void weightTheData(vector<vector<uint>> theMixedCluster, vector<int>& theScore, 
     }
 }
 
+template <typename T>
+void wirteCandidates(string filename, vector<vector<T>> fullData, vector<pair<int, int>> theResult) {
+
+    FILE* pFile;
+    pFile = fopen(filename.c_str(), "w");
+
+    //header for information
+    fprintf(pFile, "id;trajectories;\n");
+
+    for (int i = 0; i < theResult.size(); i++) {
+        fprintf(pFile, "%d;", i);
+        for (int j = 0; j < fullData[theResult[i].first].size(); j++) {
+            fprintf(pFile, "%f;%f;", fullData[theResult[i].first][j][0], fullData[theResult[i].first][j][1]);
+
+            if (j == fullData[theResult[i].first].size() - 1) {
+                fprintf(pFile, "\n");
+            }
+        }
+    }
+
+}
+
 bool scoreSort(pair<int, int> a, pair<int, int> b) {
     return (a.second < b.second);
 }
@@ -197,6 +221,8 @@ int main() {
     */
     // int Run(TVector* V, const uint dim, const Float eps, const uint min, const DistanceFunc& disfunc = [](const T& t1, const T& t2)->Float { return 0; });
 
+    cout << "-----started----" << endl;
+
 #pragma region HotspotDetecionRegion
     //hotspot detection
     vector<vector<latLongVecf>> theData = {};
@@ -208,7 +234,7 @@ int main() {
 
     auto dbscan = DBSCAN<latLongVecf, float>();
 
-    dbscan.Run(&mixedData, 2, 0.01f, 2);
+    dbscan.Run(&mixedData, 2, 0.001f, 2);
     auto noise = dbscan.Noise;
     auto clusters = dbscan.Clusters;
 
@@ -218,6 +244,8 @@ int main() {
     writeHotspotOutput("hotspot_class.csv", mixedData, clusters);
 
 #pragma endregion
+
+    cout <<endl << "-----HotSpot Detection region ended----" << endl;
 
 #pragma region ClusteringRegion
     //clean the data that only consist 1 data
@@ -252,10 +280,12 @@ int main() {
     
 #pragma endregion
 
+    cout << endl << "-----Trajectory clustering ended----" << endl;
+
 #pragma region ReouteRecommendation
     //test case
-    //start from region 3 --> 2
-    int start_query = 3, end_query = 2;
+    //start from region 4 --> 4
+    int start_query = 0, end_query = 4;
 
     //fetch the corresponding trajectories
     vector<pair<int,int>> fetched_score_trajectoryID;
@@ -265,6 +295,9 @@ int main() {
             fetched_score_trajectoryID.push_back({i, theDataScore[i] });
         }
     }
+
+    //write candidate as proof
+    wirteCandidates("trajectory_candidates.csv" ,theData, fetched_score_trajectoryID);
 
     //sort based on score
     sort(fetched_score_trajectoryID.begin(), fetched_score_trajectoryID.end(), scoreSort);
@@ -278,6 +311,8 @@ int main() {
     writeResult("given_result.csv",theResult);
 
 #pragma endregion
+
+    cout << endl << "-----All finished, great job----" << endl;
 
     return 0;
 }

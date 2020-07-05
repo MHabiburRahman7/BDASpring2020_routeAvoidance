@@ -21,6 +21,9 @@
     <ClCompile Include="kdtree_nezha.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="KMeans.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dbscan_nezha.h">
